@@ -1,6 +1,5 @@
-# M5
-## Title of the project.
-## Team 04
+# M5 - Title of the project.
+### Team 04
 #### Inigo.
 #### Bea.
 #### Kyryl.
