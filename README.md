@@ -2,7 +2,7 @@
 ### Team 04
 #### Iñigo Auzmendi Iriarte	email: inigoauz.27@gmail.com		
 #### Bea.
-#### Kyryl.
+#### Kyryl Dubovetskyi    email: krupartea@gmail.com
 #### Michell Vargas Signoret	email: michellvsigno21@gmail.com
 
 #### [Article](https://es.overleaf.com/read/kthmsbytywtz)
