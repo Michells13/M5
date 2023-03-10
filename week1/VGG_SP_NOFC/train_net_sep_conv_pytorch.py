@@ -90,7 +90,7 @@ class VGG_SP_NOFC(nn.Module):
         
         # Activations
         self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        #self.softmax = nn.Softmax(dim=1)
         
         
 
@@ -110,8 +110,11 @@ class VGG_SP_NOFC(nn.Module):
         x = torch.squeeze(x)
         # FC
         x = self.fc(x)
-        # Softmax
-        x = self.softmax(x)
+        
+        # If it is in eval mode
+        #if not self.training:
+            # Softmax
+        #    x = self.softmax(x)
         
         return x
 
@@ -272,7 +275,7 @@ def val(epoch, model, val_loader, criterion, best_acc):
     return acc
 
 run = wandb.init(project='VGG_SP_NOFC', config=configs, job_type='train')
-wandb.run.name = "PYTORCH"
+wandb.run.name = "PYTORCH_train"
 
 # Build, train and analyze the model with the pipeline
 model = model_pipeline(configs)
