@@ -1,3 +1,8 @@
 # Week 1
-### Since our team is composed of members from two different teams from the M3 course, we have decided to implement the models from both teams in Keras into PyTorch, then the first model is called xx  and the second xx. 
-### The following image shows how the model has been built in keras:
+The objective of this week's project was to understand how PyTorch works and how to implement it by comparing the model created during the M3 course in Keras, but this time in PyTorch. This allowed us to better understand these differences.The objective of this week's project was to understand how PyTorch works and how to implement it by comparing the model created during the M3 course in Keras, but this time in PyTorch. This allowed us to better understand these differences.
+
+### Install the following dependencies:
+* Keras
+* Matpotlib
+* Pytorch
+
