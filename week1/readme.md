@@ -5,4 +5,8 @@ The objective of this week's project was to understand how PyTorch works and how
 * Keras
 * Matpotlib
 * Pytorch
+* Wandb
+* Numpy
+* Sklearn
+
 
