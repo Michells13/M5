@@ -8,5 +8,13 @@ The objective of this week's project was to understand how PyTorch works and how
 * Wandb
 * Numpy
 * Sklearn
+## Scripts:
+### VGG_SP_NOFC/train_net_sep_conv_keras.py     : Train the M3 model using keras (WnB implemented)
+### VGG_SP_NOFC/train_net_sep_conv_pytorch.py   : Train the M3 model usinf pytorch (WnB implemented)
+### confusionMatrixKeras.py                     : Creates the confusion matrix  of the keras model(WnB implemented)
+### confusionMatrixPytorch.py                   : Creates the confusion matrix  of the pytorch model(WnB implemented)
+
+## Dataset:
+### MIT_split 
 
 
