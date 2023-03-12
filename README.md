@@ -1,4 +1,4 @@
-# M5 - Title of the project.
+# M5 - Cross-modal Retrieval
 ### Team 04
 #### Iñigo Auzmendi Iriarte	email: inigoauz.27@gmail.com		
 #### Beatrice Peptenaru email: peptenaru.beatrice@gmail.com
