@@ -1,14 +1,8 @@
 import detectron2
-from detectron2.config import get_cfg
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2 import model_zoo
 import os
 import cv2
 import PIL.Image as Image
 import numpy as np
-import random
-from detectron2.utils.visualizer import Visualizer
-from matplotlib import pyplot as plt
 
 def read_png_KITTI_MOTS(png_dir):
     """
@@ -62,16 +56,18 @@ def read_png_KITTI_MOTS(png_dir):
         
         # Polygon
         contours, _ = cv2.findContours(img_obj, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        contours = [list(np.squeeze(contour).flatten().astype(float)) for contour in contours]
+        contours = [list(np.squeeze(contour).flatten().astype(float)) for contour in contours if len(contour)>3]
         
-        # Insert in dict
-        obj_dict = {}
-        obj_dict["bbox"] = [xmin, ymin, xmax, ymax]
-        obj_dict["bbox_mode"] = mode
-        obj_dict["category_id"] = class_id
-        obj_dict["segmentation"] = contours
+        if len(contours) != 0:
         
-        objs.append(obj_dict)
+            # Insert in dict
+            obj_dict = {}
+            obj_dict["bbox"] = [xmin, ymin, xmax, ymax]
+            obj_dict["bbox_mode"] = mode
+            obj_dict["category_id"] = class_id
+            obj_dict["segmentation"] = contours
+            
+            objs.append(obj_dict)
     
     return objs
 
