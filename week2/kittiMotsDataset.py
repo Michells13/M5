@@ -4,7 +4,7 @@ import cv2
 import PIL.Image as Image
 import numpy as np
 
-def read_png_KITTI_MOTS(png_dir):
+def read_png_KITTI_MOTS(png_dir, pretrained):
     """
     This functions reads KITTI MOTS annotation png file and returns the
     list of objects in COCO format
@@ -14,6 +14,9 @@ def read_png_KITTI_MOTS(png_dir):
     png_dir : str
         Path of the png image.
 
+    pretrained : bool
+        True if the pretrained model with coco dataset will be used (will not be trained)
+        
     Returns
     -------
     objs : list
@@ -51,8 +54,17 @@ def read_png_KITTI_MOTS(png_dir):
         
         # Class id
         class_id = obj // 1000 
-        # To be 0, 1 (COCO format)
-        class_id = class_id - 1
+        if pretrained:
+            # Get COCO labels id
+            # Car
+            if class_id == 1:
+                class_id = 3
+            # Person
+            elif class_id == 2:
+                class_id = 1
+        else:
+            # To be 0, 1 (COCO format)
+            class_id = class_id - 1
         
         # Polygon
         contours, _ = cv2.findContours(img_obj, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -72,22 +84,24 @@ def read_png_KITTI_MOTS(png_dir):
     return objs
 
 
-def get_KITTI_MOTS_dataset(img_dir, annot_dir):
+def get_KITTI_MOTS_dataset(img_dir, annot_dir, pretrained = True):
     """
     This functions generates the dataset in COCO format given the path of the
     KITTI-MOTS dataset images and annotations
 
     Parameters
     ----------
-    img_dir : TYPE
-        DESCRIPTION.
-    annot_dir : TYPE
-        DESCRIPTION.
+    img_dir : str
+        Images directory.
+    annot_dir : str
+        Annotations (pngs) directory.
+    pretrained : bool
+        True if the pretrained model with coco dataset will be used (will not be trained)
 
     Returns
     -------
-    dataset_dicts : TYPE
-        DESCRIPTION.
+    dataset_dicts : list(dict)
+        Annotations in coco format.
 
     """
     
@@ -112,7 +126,7 @@ def get_KITTI_MOTS_dataset(img_dir, annot_dir):
             
             # Read annotation PNG
             annotFile = os.path.join(annot_dir, seq, image)
-            objs = read_png_KITTI_MOTS(annotFile)
+            objs = read_png_KITTI_MOTS(annotFile, pretrained)
             
             record["annotations"] = objs
                 
