@@ -1,59 +1,81 @@
-import detectron2
 from detectron2.config import get_cfg
-from detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.data import DatasetCatalog, MetadataCatalog, build_detection_test_loader
 from detectron2 import model_zoo
 import os
-import cv2
-import PIL.Image as Image
-import numpy as np
-import random
-from detectron2.utils.visualizer import Visualizer
-from matplotlib import pyplot as plt
 from kittiMotsDataset import get_KITTI_MOTS_dataset
-from detectron2.engine import DefaultTrainer
+from detectron2.engine import DefaultTrainer, DefaultPredictor
 import wandb
+from detectron2.evaluation import COCOEvaluator, DatasetEvaluators, inference_on_dataset
 
-datasetTraining = "KITTI-MOTS/training/image_02/"
-datasetValidation = "KITTI-MOTS/testing/image_02/"
-datasetAnnot = "KITTI-MOTS/instances/"
+dataset = "/ghome/group04/new_split_dataset/"
+datasetTraining = dataset + "train/"
+datasetValidation = dataset + "val/"
+datasetAnnot = dataset + "instances/"
+
+class MyTrainer(DefaultTrainer):
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+        if output_folder is None:
+            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
+        coco_evaluator = COCOEvaluator(dataset_name, output_dir=output_folder)
+        
+        evaluator_list = [coco_evaluator]
+        
+        return DatasetEvaluators(evaluator_list)
+
 
 # Register dataset
-for d in ["training", "testing"]:
-    DatasetCatalog.register("KITTI_MOTS_" + d, lambda d=d: get_KITTI_MOTS_dataset("KITTI-MOTS/" + d + "/image_02/", datasetAnnot))
+for d in ["train", "val"]:
+    DatasetCatalog.register("KITTI_MOTS_" + d, lambda d=d: get_KITTI_MOTS_dataset(dataset + d, datasetAnnot, False))
     MetadataCatalog.get("KITTI_MOTS_" + d).set(thing_classes=["car", "pedestrian"])
     
 kitti_mots_metadata = MetadataCatalog.get(datasetTraining)
 #dataset_dicts = get_KITTI_MOTS_dataset(datasetTraining, datasetAnnot)
 
 # Init wandb
-wandb.init(sync_tensorboard=True,
-           settings=wandb.Settings(start_method="thread", console="off"))
+run = wandb.init(sync_tensorboard=True,
+               settings=wandb.Settings(start_method="thread", console="off"), 
+               project = "detectron2Eval")
+wandb.run.name = "Fine_tune_MASKRCNN"
 
 # Config model
 cfg = get_cfg()
 cfg.merge_from_file(model_zoo.get_config_file("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml"))
-cfg.DATASETS.TRAIN = ("KITTI_MOTS_training",)
-cfg.DATASETS.TEST = ("KITTI_MOTS_testing", )
-cfg.DATALOADER.NUM_WORKERS = 0
+cfg.DATASETS.TRAIN = ("KITTI_MOTS_train",)
+cfg.DATASETS.TEST = ("KITTI_MOTS_val", )
+cfg.TEST.EVAL_PERIOD = 500
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # set threshold for this model
+cfg.MODEL.ANCHOR_GENERATOR.SIZES = [[16, 32, 64, 128, 256]]
+cfg.MODEL.ANCHOR_GENERATOR.ASPECT_RATIOS = [[0.5, 1.0, 2.0]]
+cfg.DATALOADER.NUM_WORKERS = 2
 cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml")  # Let training initialize from model zoo
-cfg.SOLVER.IMS_PER_BATCH = 2  # This is the real "batch size" commonly known to deep learning people
-cfg.SOLVER.BASE_LR = 0.00025  # pick a good LR
-cfg.SOLVER.MAX_ITER = 300    # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
-cfg.SOLVER.STEPS = []        # do not decay learning rate
-cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128   # The "RoIHead batch size". 128 is faster, and good enough for this toy dataset (default: 512)
+cfg.SOLVER.IMS_PER_BATCH = 16  # This is the real "batch size" commonly known to deep learning people
+cfg.SOLVER.BASE_LR = 0.0025 # pick a good LR
+cfg.SOLVER.WARMUP_ITERS = 100
+cfg.SOLVER.LR_SCHEDULER_NAME = "WarmupCosineLR"
+cfg.SOLVER.MAX_ITER = 3000    # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
+cfg.SOLVER.STEPS = 200       # do not decay learning rate
+#cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 256   # The "RoIHead batch size". 128 is faster, and good enough for this toy dataset (default: 256)
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2  # 2 classes: car and pedestrian
 # NOTE: this config means the number of classes, but a few popular unofficial tutorials incorrect uses num_classes+1 here.
 
-# Init
+
+# Init training
 os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)
-trainer = DefaultTrainer(cfg) 
+trainer = MyTrainer(cfg) 
 trainer.resume_or_load(resume=False)
 trainer.train()
 
-# for d in random.sample(dataset_dicts, 3):
-#     #d = dataset_dicts[0]
-#     img = cv2.imread(d["file_name"])
-#     visualizer = Visualizer(img[:, :, ::-1], metadata=kitti_mots_metadata, scale=0.5)
-#     out = visualizer.draw_dataset_dict(d)
-#     plt.imshow(out.get_image())
-#     plt.show()
+
+# Eval val set
+print("Final final validation results: ")
+cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
+# Create predictor
+predictor = DefaultPredictor(cfg)
+#Call the COCO Evaluator function and pass the Validation Dataset
+evaluator = COCOEvaluator("KITTI_MOTS_val", cfg, False, output_dir=cfg.OUTPUT_DIR)
+val_loader = build_detection_test_loader(cfg, "KITTI_MOTS_val")
+# Final evaluation
+print(inference_on_dataset(trainer.model, val_loader, evaluator))
+
+wandb.finish()

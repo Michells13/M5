@@ -1,4 +1,4 @@
-import detectron2
+from detectron2.structures import BoxMode
 import os
 import cv2
 import PIL.Image as Image
@@ -50,7 +50,7 @@ def read_png_KITTI_MOTS(png_dir, pretrained):
         xmax = np.max(coords[:,1])
         ymax = np.max(coords[:,0])
         
-        mode = detectron2.structures.BoxMode.XYXY_ABS
+        mode = BoxMode.XYXY_ABS
         
         # Class id
         class_id = obj // 1000 
