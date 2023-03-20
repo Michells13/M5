@@ -17,5 +17,9 @@ evaluated and visualized the results.
 * pretrained_inference.py	: Visualize the pretrained model predictions.
 * test_speed.py	: Measure the time of inference of different models.
 * utils.py	: Obtain the best anchor box size and aspect ratios using the training bounding boxes.
+* compare_imdirs.py    : Simultaneously, in two show contents of image folders. Used to find interesting distinctions in model behaviour.
+* fineTuneFasterRCNN_cluster.py    : Train the Faster RCNN model using detectron2 and logged by WnB
+* vis_finetuned.py    : save N prediction visualizations of model. Used with compare_imdirs.py to find meaningful differences in model behaviour.
+* vis_orig.py    : same as above, but for an untrained network.
 ### Dataset:
 * KITTI-MOTS
