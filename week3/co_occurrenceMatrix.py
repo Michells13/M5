@@ -3,8 +3,7 @@ from utils import co_ocurrenceOf2classes,coMatriz,co_OcurrenceMatrix
 import numpy as np
 import matplotlib.pyplot as plt
 
-# LOad annotations
-
+# Load annotations
 pathToAnnotations='/media/michell/DSet/annotations_trainval2017/annotations/instances_val2017.json'
 
 # get co-occurrence matrix
