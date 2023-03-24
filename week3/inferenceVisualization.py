@@ -36,7 +36,7 @@ predictorMask = DefaultPredictor(cfgMask)
 pathDataset = "./noisyImages/"
 pathPreds = "./noisyImagesPred/"
 
-# Create folder of `preds
+# Create folder of preds
 if not os.path.exists(pathPreds):
     os.makedirs(pathPreds)
 
@@ -46,13 +46,18 @@ for image in os.listdir(pathDataset):
     # Load image
     img = cv2.imread(pathDataset + image)
     
+    # Create folder
+    folderName = image[:-4].split("_")[0] + "/"
+    if not os.path.exists(pathPreds + folderName):
+        os.makedirs(pathPreds + folderName)
+    
     # Inference models
     outputFaster = predictorFaster(img)
     outputMask = predictorMask(img)
     
     # Visualize results
-    vFaster = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfgFaster.DATASETS.TEST[0]), scale=1.2)
-    vMask = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfgFaster.DATASETS.TEST[0]), scale=1.2)
+    vFaster = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfgFaster.DATASETS.TEST[0]), scale=0.25)
+    vMask = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfgFaster.DATASETS.TEST[0]), scale=0.25)
     
     # Get instances
     instancesFaster = outputFaster["instances"].to("cpu")
@@ -63,8 +68,8 @@ for image in os.listdir(pathDataset):
     outMask = vMask.draw_instance_predictions(instancesMask)
     
     # Save detections
-    cv2.imwrite(pathPreds + image[:-4] + "_faster.png", outFaster.get_image()[:, :, ::-1])
-    cv2.imwrite(pathPreds + image[:-4] + "_mask.png", outMask.get_image()[:, :, ::-1])
+    cv2.imwrite(pathPreds + folderName + image[:-4] + "_faster.png", outFaster.get_image()[:, :, ::-1])
+    cv2.imwrite(pathPreds + folderName + image[:-4] + "_mask.png", outMask.get_image()[:, :, ::-1])
 
 print("Done!")
 

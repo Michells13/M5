@@ -2,7 +2,7 @@ from pycocotools.coco import COCO
 import numpy as np
 from PIL import Image
 import cv2
-from noise import addBlack, addGaussianNoise, addRandomNoise, addSPNoise
+from addNoise import addBlack, addGaussianNoise, addRandomNoise, addSPNoise
 from matplotlib import pyplot as plt
 import os
 
@@ -57,6 +57,7 @@ def getRandomPartOutsideBox(image, bbox, maskBox):
     box_height = image.shape[0]/4
     
     # Find a random valid bbox
+    i = 0
     while not valid:
         x = np.random.randint(0, image.shape[1] - box_width)
         y = np.random.randint(0, image.shape[0] - box_height)
@@ -68,6 +69,10 @@ def getRandomPartOutsideBox(image, bbox, maskBox):
         maskNoise[maskBox == False] = 0
         pixelCount = np.sum(maskNoise == 1)
         valid = pixelCount > minPixels
+        
+        i += 1
+        if i > 100:
+            break
         
     return maskNoise
 
@@ -98,6 +103,7 @@ def getRandomPartInsideBox(image, bbox, maskSeg):
     box_width = bbox[2]/4
     box_height = bbox[3]/4
     
+    i = 0
     # Find a random valid bbox
     while not valid:
         x = np.random.randint(bbox[0], bbox[0] + bbox[2] - box_width)
@@ -111,11 +117,16 @@ def getRandomPartInsideBox(image, bbox, maskSeg):
         pixelCount = np.sum(maskNoise == 1)
         valid = pixelCount > minPixels
         
+        i += 1
+        if i > 100:
+            break
+        
     return maskNoise
     
 
 if __name__ == '__main__':
 
+    
     # Save funcs and names
     differentNoiseFuncs = [addBlack, addGaussianNoise, addRandomNoise, addSPNoise]
     differentNoiseNames = ["black", "gaussian", "random", "sp"]
@@ -132,60 +143,61 @@ if __name__ == '__main__':
     # Load COCO annots
     coco = COCO(pathAnnotations)
     
-    # Get random image and its annots
-    imageId = int(np.random.choice(coco.getImgIds()))
-    imageInfo = coco.loadImgs(imageId)[0]
-    image = np.array(Image.open(pathImages + imageInfo["file_name"]))
-    annotsId = coco.getAnnIds(imageId)
-    annots = coco.loadAnns(annotsId)
-    
-    # Save original
-    cv2.imwrite(pathNewImages + imageInfo["file_name"], cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
-    
-    # For each object create masks
-    for i, annot in enumerate(annots):
-        # Segmentation mask
-        maskSeg = coco.annToMask(annot) != 1
-        # BBox mask
-        bbox = annot["bbox"]
-        maskBBox = bboxToMask(image, bbox) != 1
-        # Get smaller random mask outside and inside the bbox
-        maskPartOut = getRandomPartOutsideBox(image, bbox, maskBBox)
-        maskPartOut = maskPartOut == 1
-        maskPartIn = getRandomPartInsideBox(image, bbox, maskSeg)
-        maskPartIn[maskBBox == True] = 1
-        maskPartIn = maskPartIn == 1
+    for i in range(50):
+        # Get random image and its annots
+        imageId = int(np.random.choice(coco.getImgIds())) #000000013004
+        imageInfo = coco.loadImgs(imageId)[0]
+        image = np.array(Image.open(pathImages + imageInfo["file_name"]))
+        annotsId = coco.getAnnIds(imageId)
+        annots = coco.loadAnns(annotsId)
         
-        # Add noise outside bbox
-        for j in range(len(differentNoiseFuncs)):
-            # Add noise outside of BBox and outside of bbox
-            img = image.copy()
-            img = differentNoiseFuncs[j](img, maskBBox)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bbox_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
+        # Save original
+        cv2.imwrite(pathNewImages + imageInfo["file_name"], cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         
-        # Add noise outside segmentation
-        for j in range(len(differentNoiseFuncs)):
-            # Add noise outside of BBox and outside of bbox
-            img = image.copy()
-            img = differentNoiseFuncs[j](img, maskSeg)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_seg_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
-    
-        # Add noise in random area of outside bbox
-        for j in range(len(differentNoiseFuncs)):
-            # Add noise outside of BBox and outside of bbox
-            img = image.copy()
-            img = differentNoiseFuncs[j](img, maskPartOut)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bboxAreaOut_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
+        # For each object create masks
+        for i, annot in enumerate(annots):
+            # Segmentation mask
+            maskSeg = coco.annToMask(annot) != 1
+            # BBox mask
+            bbox = annot["bbox"]
+            maskBBox = bboxToMask(image, bbox) != 1
+            # Get smaller random mask outside and inside the bbox
+            maskPartOut = getRandomPartOutsideBox(image, bbox, maskBBox)
+            maskPartOut = maskPartOut == 1
+            maskPartIn = getRandomPartInsideBox(image, bbox, maskSeg)
+            maskPartIn[maskBBox == True] = 1
+            maskPartIn = maskPartIn == 1
+            
+            # Add noise outside bbox
+            for j in range(len(differentNoiseFuncs)):
+                # Add noise outside of BBox and outside of bbox
+                img = image.copy()
+                img = differentNoiseFuncs[j](img, maskBBox)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bbox_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
+            
+            # Add noise outside segmentation
+            for j in range(len(differentNoiseFuncs)):
+                # Add noise outside of BBox and outside of bbox
+                img = image.copy()
+                img = differentNoiseFuncs[j](img, maskSeg)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_seg_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
         
-        # Add noise in random area of inside bbox
-        for j in range(len(differentNoiseFuncs)):
-            # Add noise outside of BBox and outside of bbox
-            img = image.copy()
-            img = differentNoiseFuncs[j](img, maskPartIn)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bboxAreaIn_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
-        
+            # Add noise in random area of outside bbox
+            for j in range(len(differentNoiseFuncs)):
+                # Add noise outside of BBox and outside of bbox
+                img = image.copy()
+                img = differentNoiseFuncs[j](img, maskPartOut)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bboxAreaOut_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
+            
+            # Add noise in random area of inside bbox
+            for j in range(len(differentNoiseFuncs)):
+                # Add noise outside of BBox and outside of bbox
+                img = image.copy()
+                img = differentNoiseFuncs[j](img, maskPartIn)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(pathNewImages + imageInfo["file_name"][:-4] + "_bboxAreaIn_" + differentNoiseNames[j] + "_" + str(i) + ".png", img)
+            
     print("Done!")
