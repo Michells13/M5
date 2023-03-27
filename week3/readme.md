@@ -24,7 +24,7 @@ We utilized pre-trained models from the COCO dataset and evaluated their perform
 -   transplant.py : by specifying the object to cut out and the image to insert it in with annotation ID, this script returns the combined image and runs an object-detector inference. Finally, it saves the results.
 
 #### Task d:
-* -   addNoise.py : this script contains functions to add Gaussian, Random, and Salt & Pepper noise to given images in the areas indicated in the masks.
+-   addNoise.py : this script contains functions to add Gaussian, Random, and Salt & Pepper noise to given images in the areas indicated in the masks.
 -   createNoisyImage.py : this script takes an image name from the COCO validation set and stores a set of images. For each object in the image, it removes the background (out of the BBox or ROI) and also adds different types of noise.
 -   inferenceVisualization.py : this script inferences the pre-trained Faster R-CNN and Mask R-CNN networks on COCO with the indicated images. It also stores the images with the detections made.
 
