@@ -17,6 +17,7 @@ We utilized pre-trained models from the COCO dataset and evaluated their perform
 or run  
 ```python 
 pip install -r requirements.txt
+```
 ### Scripts:
 #### Task a and e:
 -   eval_a_e.py : a script that evaluates fastrcnn and maskrcnn on the Out Of Context dataset, a smaller hanpicked dataset (with isolated objects) and 2 other datasets that compromise of the handpicked dataset, but the images have had a style/texture transfer applied
