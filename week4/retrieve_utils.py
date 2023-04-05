@@ -28,6 +28,34 @@ def cache_outputs(loader, model, cache_filename):
             np.savetxt(f, output)
         f.close()
 
+def cache_outputs_coco(loader, model, cache_filename, device, layer):
+    """Create a database for the retrieval.
+    
+    Write model's outputs for the loader's data into a file located at
+    cache_filename.
+
+    Args:
+        loader: PyTorc DataLoader representing your dataset
+        model: callable, used to produce feature vectors,
+            takes (n_samples, in_features), 
+            outputs (n_samles, out_features)
+        cache_filename: path to a file, into which feature vectors
+            will be written
+        device: device to perform inference
+
+    Returns:
+        None
+    """
+    model.eval()
+    with torch.no_grad():
+        f = open(cache_filename, "wb")
+        for data, _ in tqdm(loader):
+            data = data.to(device)
+            output = model(data)[layer]
+            output = torch.flatten(output, 1)
+            np.savetxt(f, output.cpu().numpy())
+        f.close()
+
 
 def retrieve(database_filename, query_idx, k, metric_function, sorted=False):
     """ Perfrom retrieval task.
