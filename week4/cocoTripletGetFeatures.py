@@ -4,19 +4,23 @@ from torchvision.models.detection import maskrcnn_resnet50_fpn_v2, MaskRCNN_ResN
 from torchvision import transforms
 import torch
 import os
+from net import ResNet_Triplet_COCO
 
 if __name__ == "__main__":
     device = "cuda"
     batch_size = 1
-    size = (120, 160)#(240,320)
+    size = (240,320)#(480, 640)#(240,320)
+    allLabelsTrain = "./COCO/instances_train2014.json"
+    allLabelsTest = "./COCO/instances_val2014.json"
     
     # Load MASK RCNN pretrained in COCO
-    model = maskrcnn_resnet50_fpn_v2(MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1)
+    #model = maskrcnn_resnet50_fpn_v2(MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1)
+    model = ResNet_Triplet_COCO()
     # Get backbone
-    model = model.backbone
+    #model = model.backbone
     model = model.to(device)
     # Load trained weights
-    weights = "trained_Mask_backbone_lr1e-3_2.pth"
+    weights = "trained_Mask_backbone_5_epoch_1e-5_margin5.pth"
     model.load_state_dict(torch.load(weights, map_location=device))
     
     
@@ -28,15 +32,14 @@ if __name__ == "__main__":
     )
 
     # Init dataset
-    section = "val"
-    databaseImagesPath = "./COCO/val2014/"#"./COCO/train2014/"
+    section = "database"
+    databaseImagesPath = "./COCO/train2014/"#"./COCO/train2014/"
     databaseImages = os.listdir(databaseImagesPath)
     jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
     database_dataset = TripletCOCOdatabase(databaseImagesPath, databaseImages, jsonPath,
-                                           transforms, section)
+                                           transforms, section, allLabelsTrain)
     database_loader = torch.utils.data.DataLoader(database_dataset, 
                                                batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
     
-    layer = "pool"
-    cache_filename = weights[:-4] + "_" + section + "_" + layer + ".txt"
-    cache_outputs_coco(database_loader, model, cache_filename, device, layer)    
+    cache_filename = weights[:-4] + "_" + section + ".txt"
+    cache_outputs_coco(database_loader, model, cache_filename, device)    

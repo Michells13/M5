@@ -28,7 +28,7 @@ def cache_outputs(loader, model, cache_filename):
             np.savetxt(f, output)
         f.close()
 
-def cache_outputs_coco(loader, model, cache_filename, device, layer):
+def cache_outputs_coco(loader, model, cache_filename, device):
     """Create a database for the retrieval.
     
     Write model's outputs for the loader's data into a file located at
@@ -51,8 +51,7 @@ def cache_outputs_coco(loader, model, cache_filename, device, layer):
         f = open(cache_filename, "wb")
         for data, _ in tqdm(loader):
             data = data.to(device)
-            output = model(data)[layer]
-            output = torch.flatten(output, 1)
+            output = model(data)
             np.savetxt(f, output.cpu().numpy())
         f.close()
 

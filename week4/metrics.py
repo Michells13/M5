@@ -20,7 +20,7 @@ def precisionK(results, k):
 
     """
     
-    return np.sum(results[:k+1])/k
+    return np.sum(results[:k])/k
 
 def mPrecisionK(listResults, k):
     """
@@ -66,7 +66,7 @@ def recallK(results, k):
 
     """
     
-    return np.sum(results[:k+1])/np.sum(results)
+    return np.sum(results[:k])/np.sum(results)
 
 def mRecallK(listResults, k):
     """

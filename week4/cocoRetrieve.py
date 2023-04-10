@@ -1,9 +1,21 @@
 import numpy as np
 import os
 from cocoTripletDataset import TripletCOCOdatabase, firstStrategy
-from sklearn.neighbors import KNeighborsClassifier
 from metrics import mPrecisionK, mRecallK, MAP
 from tqdm import tqdm
+from matplotlib import pyplot as plt
+from similarRetrieval import FAISSretrieval, KNNretrieval
+
+classes =  ["", 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+           'fire hydrant', '', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep',
+           'cow', 'elephant', 'bear', 'zebra', 'giraffe', '', 'backpack', 'umbrella', '', '', 'handbag', 'tie',
+           'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
+           'skateboard', 'surfboard', 'tennis racket', 'bottle', '', 'wine glass', 'cup', 'fork', 'knife', 'spoon',
+           'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut',
+           'cake', 'chair', 'couch', 'potted plant', 'bed', '', 'dining table', '', '', 'toilet', '', 'tv',
+           'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
+           'refrigerator', '', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
+           'toothbrush']
 
 def computePositives(neighbors, databaseDataset, queryDataset):
     """
@@ -48,37 +60,56 @@ def computePositives(neighbors, databaseDataset, queryDataset):
     
     return np.array(resultsQueries)
 if __name__ == "__main__":
+    
+    # Use FAISS
+    useFaiss = False
+    # Use all image objects
+    useAllObjects = False
+    metric = "l1"
+    
+    
     jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
+    allLabelsTrain = "./COCO/instances_train2014.json"
+    allLabelsTest = "./COCO/instances_val2014.json"
     
     # Init query dataset
-    querySection = "val"
+    querySection = "test"
     queryImagesPath = "./COCO/val2014/"
     queryImages = os.listdir(queryImagesPath)
+    
+    if not useAllObjects:
+        allLabelsTest = None
     query_dataset = TripletCOCOdatabase(queryImagesPath, queryImages, jsonPath,
-                                           None, querySection)
-    queryFeaturesPath = "trained_Mask_backbone_lr1e-3_2_val_pool.txt"
+                                           None, querySection, allLabelsTest)
+    
+    queryFeaturesPath = "trained_Mask_backbone_5_epoch_1e-5_margin5_test.txt"
     queryFeatures = np.loadtxt(queryFeaturesPath)
+    queryFeatures = queryFeatures.astype(np.float32)
     
     # Init database dataset
     databaseSection = "database"
     databaseImagesPath = "./COCO/train2014/"
     databaseImages = os.listdir(databaseImagesPath)
+    if not useAllObjects:
+        allLabelsTrain = None
     database_dataset = TripletCOCOdatabase(databaseImagesPath, databaseImages, jsonPath,
-                                           None, databaseSection)
+                                           None, databaseSection, allLabelsTrain)
     
-    databaseFeaturesPath = "trained_Mask_backbone_lr1e-3_2_database_pool.txt"
+    databaseFeaturesPath = "trained_Mask_backbone_5_epoch_1e-5_margin5_database.txt"
     databaseFeatures = np.loadtxt(databaseFeaturesPath)
+    databaseFeatures = databaseFeatures.astype(np.float32)
 
     print(databaseFeaturesPath)
     print(queryFeaturesPath)
-
-    # Init KNN
-    metric = "l2"
-    knn = KNeighborsClassifier(databaseFeatures.shape[0], metric = metric)
-    knn.fit(databaseFeatures, list(range(databaseFeatures.shape[0])))
+    
+    # Init similarity method
+    if useFaiss:
+        retrieval = FAISSretrieval(databaseFeatures, databaseFeatures.shape[1])
+    else:
+        retrieval = KNNretrieval(databaseFeatures, metric, queryFeatures.shape[0])
     
     # Inference every query
-    neighbors = knn.kneighbors(queryFeatures, return_distance=False)
+    (dis, neighbors) = retrieval.getMostSimilar(queryFeatures, queryFeatures.shape[0])
     
     # Compute positive and negative values
     resultList = computePositives(neighbors, database_dataset, query_dataset)
@@ -90,4 +121,39 @@ if __name__ == "__main__":
     print("R@5: ", mRecallK(resultList, 5))
     print("MAP: ", MAP(resultList))
     
+    inStr = input("Press Enter to continue, other key to exit...")
+    while inStr == "":
+        # Show results
+        query = np.random.choice(list(range(queryFeatures.shape[0])))
+        print("Query image:")
+        # Get image
+        img, _ = query_dataset[query]
+        img = np.array(img)
+        plt.imshow(img)
+        plt.show()
+        # Get values
+        objIds = query_dataset.getObjs(query)
+        objStr = [classes[int(i)] for i in objIds]
+        print("Objects: ", objStr)
+        
+        # Get 5 most close images
+        for i in range(5):
+            print(i, ". closest image:")
+            
+            neighbor = neighbors[query, i]
+            
+            # Get image
+            img,_ = database_dataset[neighbor]
+            img = np.array(img)
+            plt.imshow(img)
+            plt.show()
+            # Get values
+            objIds = database_dataset.getObjs(neighbor)
+            objStr = [classes[int(i)] for i in objIds]
+            print("Objects: ", objStr)
+        
+        inStr = input("Press Enter to continue, other key to exit...")
+    
+
+
     

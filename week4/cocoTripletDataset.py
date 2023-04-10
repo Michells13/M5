@@ -4,20 +4,92 @@ from PIL import Image
 import json
 import os
 import cv2
+from pycocotools.coco import COCO
 
 def firstStrategy(objs1, objs2):
+    """
+    This function implements the condition that have to be ensured
+    to know if a retrieval is correct (have at least one shared objects)
+
+    Parameters
+    ----------
+    objs1 : list of ints
+        Objects in image1.
+    objs2 : list of ints
+        Objects in image2.
+
+    Returns
+    -------
+    bool
+        True if they share any object, False otherwise.
+
+    """
     
     for obj in objs1:
         if obj in objs2:
             return True
     return False
 
-def collate_fn(batch):
+
+class TripletCOCOproba(Dataset):
     """
-    To handle the data loading as different images may have different number 
-    of objects and to handle varying size tensors as well.
+    Train: For each sample image randomly select a object as its label
     """
-    return tuple(zip(*batch))
+
+    def __init__(self, trainImagesFolder, trainImages, trainImageLabels, transform):
+        # Opening JSON file
+        f = open(trainImageLabels)
+        labelJson = json.load(f)
+        f.close()
+        self.labelTrain = labelJson["train"]
+        self.transform = transform
+        self.trainImagesFolder = trainImagesFolder
+        self.trainImages = trainImages
+        
+        # Obtain labels
+        self.objs = {}
+        
+        # Get objects per image
+        for obj in self.labelTrain.keys():
+            for image in self.labelTrain[obj]:
+                if image in self.objs.keys():
+                    self.objs[image].append(obj)
+                else:
+                    self.objs[image] = [obj]
+        
+        # Rem images without images
+        i1 = 0
+        while i1 < len(self.trainImages):
+            image1 = self.trainImages[i1]
+            image1Num = int(image1[:-4].split("_")[2])
+            
+            if not(image1Num in self.objs.keys()):
+                del self.trainImages[i1]
+            else:
+                i1 += 1
+
+    
+    def __getitem__(self, index):
+        # Get anchor image
+        img1name = self.trainImages[index]
+        img1 = cv2.imread(self.trainImagesFolder + img1name)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+
+        # Transform
+        img1 = Image.fromarray(img1)
+        if self.transform is not None:
+            img1 = self.transform(img1)#.unsqueeze(0)
+            
+        # Get objects
+        img1value = int(img1name[:-4].split("_")[2])
+        img1objs = self.objs[img1value]
+        
+        # Random object as the label
+        label = int(np.random.choice(img1objs))
+        return (img1), label
+
+    def __len__(self):
+        return len(self.trainImages)
 
 class TripletCOCO(Dataset):
     """
@@ -63,7 +135,7 @@ class TripletCOCO(Dataset):
         img1 = cv2.imread(self.trainImagesFolder + img1name)
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
 
-        # Get positive image
+        # Get random positive image
         img1value = int(img1name[:-4].split("_")[2])
         img1objs = self.objs[img1value]
         
@@ -77,7 +149,7 @@ class TripletCOCO(Dataset):
         img2 = cv2.imread(self.trainImagesFolder + img2name)
         img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
         
-        # Get negative image
+        # Get random negative image
         while True:
             # Get random image
             img3name = np.random.choice(self.trainImages)
@@ -86,6 +158,7 @@ class TripletCOCO(Dataset):
             
             if not firstStrategy(img3objs, img1objs):
                 break
+        
         img3 = cv2.imread(self.trainImagesFolder + img3name)
         img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
         
@@ -104,11 +177,12 @@ class TripletCOCO(Dataset):
 
 class TripletCOCOdatabase(Dataset):
     """
-    Train: For each sample (anchor) randomly chooses a positive and negative samples
+    Dataset for retrieval
     """
 
     def __init__(self, databaseImagesFolder, databaseImages, databaseImageLabels, 
-                 transform, section):
+                 transform, section, allLabels  = None):
+        
         # Opening JSON file
         f = open(databaseImageLabels)
         labelJson = json.load(f)
@@ -139,6 +213,22 @@ class TripletCOCOdatabase(Dataset):
                 del self.databaseImages[i1]
             else:
                 i1 += 1
+        
+        if not(allLabels is None):
+            # Get every object in the image
+            coco=COCO(allLabels)
+            
+            # Obtain labels
+            self.objs = {}
+            for image in self.databaseImages:
+                imageId = int(image[:-4].split('_')[-1])
+                ann_ids = coco.getAnnIds(imgIds=[imageId])
+                anns = coco.loadAnns(ann_ids)
+                annId = []
+                for ann in anns:
+                    annId.append(str(ann["category_id"]))
+                if len(annId)>0:
+                    self.objs[imageId]=annId
 
     def __getitem__(self, index):
         # Get image
