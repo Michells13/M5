@@ -156,7 +156,7 @@ if __name__ == "__main__":
         loss_fc = TripletLoss(margin = marginVal)
         
         # Train model
-        trainNew(model, train_loader, optimizer, n_epochs, loss_fc, device)
+        train(model, train_loader, optimizer, n_epochs, loss_fc, device)
         
         # Save model
         torch.save(model.state_dict(), "trained_faster_backbone_margin_" + str(marginVal) + ".pth")
