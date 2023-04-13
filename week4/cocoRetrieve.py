@@ -1,10 +1,12 @@
 import numpy as np
 import os
 from cocoTripletDataset import TripletCOCOdatabase, firstStrategy
-from metrics import mPrecisionK, mRecallK, MAP
+from metrics import mPrecisionK, mRecallK, MAP, precisionRecall
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from similarRetrieval import FAISSretrieval, KNNretrieval
+import time
+from sklearn.metrics import PrecisionRecallDisplay
 
 classes =  ["", 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
            'fire hydrant', '', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep',
@@ -64,8 +66,8 @@ if __name__ == "__main__":
     # Use FAISS
     useFaiss = False
     # Use all image objects
-    useAllObjects = False
-    metric = "l1"
+    useAllObjects = True
+    metric = "l2"
     
     
     jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
@@ -82,7 +84,7 @@ if __name__ == "__main__":
     query_dataset = TripletCOCOdatabase(queryImagesPath, queryImages, jsonPath,
                                            None, querySection, allLabelsTest)
     
-    queryFeaturesPath = "trained_Mask_backbone_5_epoch_1e-5_margin5_test.txt"
+    queryFeaturesPath = "trained_faster_backbone_margin_100_test.txt"
     queryFeatures = np.loadtxt(queryFeaturesPath)
     queryFeatures = queryFeatures.astype(np.float32)
     
@@ -95,7 +97,7 @@ if __name__ == "__main__":
     database_dataset = TripletCOCOdatabase(databaseImagesPath, databaseImages, jsonPath,
                                            None, databaseSection, allLabelsTrain)
     
-    databaseFeaturesPath = "trained_Mask_backbone_5_epoch_1e-5_margin5_database.txt"
+    databaseFeaturesPath = "trained_faster_backbone_margin_100_database.txt"
     databaseFeatures = np.loadtxt(databaseFeaturesPath)
     databaseFeatures = databaseFeatures.astype(np.float32)
 
@@ -103,13 +105,26 @@ if __name__ == "__main__":
     print(queryFeaturesPath)
     
     # Init similarity method
-    if useFaiss:
-        retrieval = FAISSretrieval(databaseFeatures, databaseFeatures.shape[1])
-    else:
-        retrieval = KNNretrieval(databaseFeatures, metric, queryFeatures.shape[0])
+    times = []
+    repeatN = 1
+    for i in range(repeatN):
+        start = time.time()
+        if useFaiss:
+            retrieval = FAISSretrieval(databaseFeatures, databaseFeatures.shape[1])
+        else:
+            retrieval = KNNretrieval(databaseFeatures, metric, databaseFeatures.shape[0])
+        stop = time.time()
+        times.append(stop-start)
+    print("Time fit(s): ", np.median(np.array(times)))
     
     # Inference every query
-    (dis, neighbors) = retrieval.getMostSimilar(queryFeatures, queryFeatures.shape[0])
+    times = []
+    for i in range(repeatN):
+        start = time.time()
+        (dis, neighbors) = retrieval.getMostSimilar(queryFeatures, databaseFeatures.shape[0])
+        stop = time.time()
+        times.append(stop-start)
+    print("Time retrieval(s): ", np.median(np.array(times)))
     
     # Compute positive and negative values
     resultList = computePositives(neighbors, database_dataset, query_dataset)
@@ -121,10 +136,18 @@ if __name__ == "__main__":
     print("R@5: ", mRecallK(resultList, 5))
     print("MAP: ", MAP(resultList))
     
+    # Compute and plot precision recall curve
+    precision, recall = precisionRecall(resultList) 
+    display = PrecisionRecallDisplay(precision, recall)
+    disp = display.plot()
+    _ = disp.ax_.set_title("COCO retrieval precision-recall curve")
+    plt.show()
+    
     inStr = input("Press Enter to continue, other key to exit...")
     while inStr == "":
         # Show results
-        query = np.random.choice(list(range(queryFeatures.shape[0])))
+        query = np.random.choice(list(range(queryFeatures.shape[0]))) #695
+        print(query)
         print("Query image:")
         # Get image
         img, _ = query_dataset[query]

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     #model = model.backbone
     model = model.to(device)
     # Load trained weights
-    weights = "trained_Mask_backbone_5_epoch_1e-5_margin5.pth"
+    weights = "trained_faster_backbone_margin_100.pth"
     model.load_state_dict(torch.load(weights, map_location=device))
     
     
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         transforms.Resize(size),
     )
 
-    # Init dataset
+    # Init  database
     section = "database"
     databaseImagesPath = "./COCO/train2014/"#"./COCO/train2014/"
     databaseImages = os.listdir(databaseImagesPath)
@@ -42,4 +42,30 @@ if __name__ == "__main__":
                                                batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
     
     cache_filename = weights[:-4] + "_" + section + ".txt"
-    cache_outputs_coco(database_loader, model, cache_filename, device)    
+    cache_outputs_coco(database_loader, model, cache_filename, device)  
+    
+    # Init val set
+    section = "val"
+    databaseImagesPath = "./COCO/val2014/"#"./COCO/train2014/"
+    databaseImages = os.listdir(databaseImagesPath)
+    jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
+    database_dataset = TripletCOCOdatabase(databaseImagesPath, databaseImages, jsonPath,
+                                           transforms, section, allLabelsTrain)
+    database_loader = torch.utils.data.DataLoader(database_dataset, 
+                                               batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
+    
+    cache_filename = weights[:-4] + "_" + section + ".txt"
+    cache_outputs_coco(database_loader, model, cache_filename, device) 
+    
+    # Init dataset
+    section = "test"
+    databaseImagesPath = "./COCO/val2014/"#"./COCO/train2014/"
+    databaseImages = os.listdir(databaseImagesPath)
+    jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
+    database_dataset = TripletCOCOdatabase(databaseImagesPath, databaseImages, jsonPath,
+                                           transforms, section, allLabelsTrain)
+    database_loader = torch.utils.data.DataLoader(database_dataset, 
+                                               batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
+    
+    cache_filename = weights[:-4] + "_" + section + ".txt"
+    cache_outputs_coco(database_loader, model, cache_filename, device) 

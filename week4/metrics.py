@@ -138,5 +138,33 @@ def MAP(listResults):
         valSum += averagePrecision(listResults[i,:])
     
     return valSum / listResults.shape[0]
+
+def precisionRecall(listResults):
+    """
+    This function computes the mean precision and recall of all queries.
+
+    Parameters
+    ----------
+    listResults : numpy array
+        For each query (row), 1 if retrieve was positive 0 otherwise.
+
+    Returns
+    -------
+    numpy array, numpy array
+        Mean precision and recall values
+
+    """
+    values = (np.array(range(listResults.shape[1])) + 1)
+    values = values[np.newaxis, ...]
+    p = np.cumsum(listResults, axis=1)/values
+    positiveSum = (np.sum(listResults,axis = 1))
+    positiveSum = positiveSum[:,np.newaxis]
+    r = np.cumsum(listResults, axis=1)/positiveSum
+                                    
+    mp = np.mean(p, axis=0)
+    mr = np.mean(r, axis=0)
+
+    
+    return mp, mr
     
     

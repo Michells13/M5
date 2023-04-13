@@ -102,7 +102,7 @@ def train(model, train_loader, optimizer, num_epochs, loss_func, device = "cuda"
                         epoch, batch_idx, loss, anchors.shape[0]
                     )
                 )
-                wandb.log({"iteration": batch_idx, "loss": loss.item()})
+                wandb.log({"iteration": batch_idx + (epoch-1)*len(train_loader), "loss": loss.item()})
     
     
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
         trainImagesPath = "./COCO/train2014/"
         trainImages = os.listdir(trainImagesPath)
-        batch_size = 32
+        batch_size = 1#32
         n_epochs = 5
         device = "cuda"
         size = (240,320)#(480,640)
@@ -145,8 +145,8 @@ if __name__ == "__main__":
         #train_dataset = TripletCOCOproba(trainImagesPath, trainImages, jsonPath, transforms)
     
         train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                                   batch_size=batch_size, shuffle=True,
-                                                   num_workers = 2)
+                                                   batch_size=batch_size, shuffle=True)#,
+                                                   #num_workers = 2)
         
         # Init optimizer
         lr = 1e-5
