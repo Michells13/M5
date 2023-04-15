@@ -8,7 +8,7 @@ import torch.optim as optim
 from torchvision import transforms
 import wandb
 import numpy as np
-from net import ResNet_Triplet_COCO
+from net import ResNet_Triplet_COCO, FasterRCNN_Triplet_COCO
 
 class TripletLoss(torch.nn.Module):
     def __init__(self, margin=1.0):
@@ -108,59 +108,61 @@ def train(model, train_loader, optimizer, num_epochs, loss_func, device = "cuda"
 
 if __name__ == "__main__":
     
-    marginValues = [0.1, 0.5, 1, 5]
-    
-    for marginVal in marginValues:
-    
-        # Init wandb
-        run = wandb.init(project='M5_WEEK4', job_type='train')
-        wandb.run.name = "COCO_triplet_margin_" + str(marginVal)
+    marginValues = [0.1, 5, 100]
+    weightedValues = [False, True]
+    for weighted in weightedValues:
+        for marginVal in marginValues:
         
-        # Train params
-        transformsPretrained = MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1.transforms()
-        jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
-        trainImagesPath = "./COCO/train2014/"
-        trainImages = os.listdir(trainImagesPath)
-        batch_size = 1#32
-        n_epochs = 5
-        device = "cuda"
-        size = (240,320)#(480,640)
+            # Init wandb
+            run = wandb.init(project='M5_WEEK4', job_type='train')
+            wandb.run.name = "COCO_triplet_fasterrcnn_weighted_" + str(weighted) + "_margin_" + str(marginVal)
+            
+            # Train params
+            transformsPretrained = MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1.transforms()
+            jsonPath = "./COCO/mcv_image_retrieval_annotations.json"
+            trainImagesPath = "./COCO/train2014/"
+            trainImages = os.listdir(trainImagesPath)
+            batch_size = 32
+            n_epochs = 5
+            device = "cuda"
+            size = (240,320)#(480,640)
+            
+            # Load Resnet50 pretrained in COCO
+            #model = ResNet_Triplet_COCO()
+            model = FasterRCNN_Triplet_COCO(weighted = weighted)
+            model = model.to(device)
+            
+            # Set trainable all parameters
+            for param in model.parameters():
+                param.requires_grad = True
+            
+            # Transform
+            transformsAp = torch.nn.Sequential(
+                transformsPretrained,
+                transforms.Resize(size),
+            )
         
-        # Load Resnet50 pretrained in COCO
-        model = ResNet_Triplet_COCO()
-        model = model.to(device)
+            # Init dataset
+            train_dataset = TripletCOCO(trainImagesPath, trainImages, jsonPath, transformsAp)
+            #train_dataset = TripletCOCOproba(trainImagesPath, trainImages, jsonPath, transforms)
         
-        # Set trainable all parameters
-        for param in model.parameters():
-            param.requires_grad = True
-        
-        # Transform
-        transforms = torch.nn.Sequential(
-            transformsPretrained,
-            transforms.Resize(size),
-        )
-    
-        # Init dataset
-        train_dataset = TripletCOCO(trainImagesPath, trainImages, jsonPath, transforms)
-        #train_dataset = TripletCOCOproba(trainImagesPath, trainImages, jsonPath, transforms)
-    
-        train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                                   batch_size=batch_size, shuffle=True)#,
-                                                   #num_workers = 2)
-        
-        # Init optimizer
-        lr = 1e-5
-        optimizer = optim.AdamW(model.parameters(), lr=lr)
-        
-        # Init loss func
-        loss_fc = TripletLoss(margin = marginVal)
-        
-        # Train model
-        train(model, train_loader, optimizer, n_epochs, loss_fc, device)
-        
-        # Save model
-        torch.save(model.state_dict(), "trained_faster_backbone_margin_" + str(marginVal) + ".pth")
-        
-        wandb.finish()
+            train_loader = torch.utils.data.DataLoader(train_dataset, 
+                                                       batch_size=batch_size, shuffle=True)#,
+                                                       #num_workers = 2)
+            
+            # Init optimizer
+            lr = 1e-5
+            optimizer = optim.AdamW(model.parameters(), lr=lr)
+            
+            # Init loss func
+            loss_fc = TripletLoss(margin = marginVal)
+            
+            # Train model
+            train(model, train_loader, optimizer, n_epochs, loss_fc, device)
+            
+            # Save model
+            torch.save(model.state_dict(), "trained_faster_objdet_weighted_" + str(weighted) + "_margin_" + str(marginVal) + ".pth")
+            
+            wandb.finish()
     
     

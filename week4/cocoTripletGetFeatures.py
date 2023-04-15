@@ -4,7 +4,7 @@ from torchvision.models.detection import maskrcnn_resnet50_fpn_v2, MaskRCNN_ResN
 from torchvision import transforms
 import torch
 import os
-from net import ResNet_Triplet_COCO
+from net import ResNet_Triplet_COCO, FasterRCNN_Triplet_COCO
 
 if __name__ == "__main__":
     device = "cuda"
@@ -15,12 +15,12 @@ if __name__ == "__main__":
     
     # Load MASK RCNN pretrained in COCO
     #model = maskrcnn_resnet50_fpn_v2(MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1)
-    model = ResNet_Triplet_COCO()
+    model = FasterRCNN_Triplet_COCO(weighted = True)#_2(weighted = True)
     # Get backbone
     #model = model.backbone
     model = model.to(device)
     # Load trained weights
-    weights = "trained_faster_backbone_margin_100.pth"
+    weights = "trained_faster_objdet_weighted_True_margin_100.pth"
     model.load_state_dict(torch.load(weights, map_location=device))
     
     

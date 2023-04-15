@@ -73,3 +73,102 @@ class ResNet_Triplet_COCO(nn.Module):
         features = self.model(x)
         
         return features
+
+
+class FasterRCNN_Triplet_COCO(nn.Module):
+    
+    def __init__(self, weighted = False):
+        """
+        Loads the pretrained Resnet50 in COCO (from pretrained FasterRCNN)
+
+        Returns
+        -------
+        None.
+
+        """
+        super().__init__()
+        
+        # Mode
+        self.weighted = weighted
+        
+        # Create the model
+        model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True, min_size = 240, max_size = 320)
+        
+        self.features = []
+        self.scores = []
+        self.proposals = []
+        def save_features(mod, inp, outp):
+            self.features.append(outp)
+        def save_scores(mod, inp, outp):
+            self.scores.append(outp)
+        def save_proposals(mod, inp, outp):
+            self.proposals.append(inp)
+        
+        # you can also hook layers inside the roi_heads
+        layerFeatures = 'roi_heads.box_head.fc7'
+        layerClasses = "roi_heads.box_predictor.cls_score"
+        layerProposals = "roi_heads.box_roi_pool"#­"rpn.head.cls_logits"
+        for name, layer in model.named_modules():
+            if name == layerFeatures:
+                layer.register_forward_hook(save_features)
+            
+            if name == layerClasses:
+                layer.register_forward_hook(save_scores)
+                
+            if name == layerProposals:
+                layer.register_forward_hook(save_proposals)
+    
+    
+        
+        self.model = model
+        
+    def forward(self,x):
+        
+        target = {}
+        target["boxes"] = torch.zeros((0,4)).to("cuda")
+        target["labels"] = torch.zeros((0), dtype = torch.int64).to("cuda")
+        target["image_id"] = torch.zeros((0), dtype = torch.int64).to("cuda")
+        
+        targets = [target]*x.shape[0]
+        
+        features = self.model(x, targets)
+        
+        
+        # Obtain stored data
+        proposalsScores = self.scores[0]
+        del self.scores[0]
+        proposals = self.proposals[0]
+        del self.proposals[0]
+        proposalsFeatures = self.features[0]
+        del self.features[0]
+        
+        # Proposals per image        
+        bbox_per_image = proposalsFeatures.shape[0]//x.shape[0]
+        features_per_image = [bbox_per_image]*x.shape[0]
+        
+        # Split proposals into images
+        proposalsFeatures = proposalsFeatures.split(features_per_image, 0)
+        
+        
+        # Softmax per BBox proposal
+        proposalsScores = torch.nn.functional.softmax(proposalsScores, dim = 1)
+        # Get max value (confidence) per proposal
+        proposalsScores = torch.max(proposalsScores, dim = 1)[0]
+        # Split into images
+        proposalsScores = proposalsScores.split(features_per_image, 0)
+        # Obtain weights from confidences
+        proposalsScores = [torch.nn.functional.softmax(a, dim = 0).unsqueeze(1) for a in proposalsScores]
+        
+        if self.weighted:
+            # Use weighted sum of proposals
+            features = [proposalsFeatures[i]*proposalsScores[i] for i in range(len(proposalsScores))]
+            features = [torch.sum(f, dim = 0).unsqueeze(0) for f in features]
+        else:
+            # Use mean of all proposals
+            features = proposalsFeatures
+            features = [torch.mean(f, dim = 0).unsqueeze(0) for f in features]
+        
+        # Stack all images features
+        features = torch.vstack(features)
+        
+        return features

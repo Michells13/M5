@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 import numpy as np
-
+import time
 
 def cache_outputs(loader, model, cache_filename):
     """Create a database for the retrieval.
@@ -47,13 +47,19 @@ def cache_outputs_coco(loader, model, cache_filename, device):
         None
     """
     model.eval()
+    times = []
     with torch.no_grad():
         f = open(cache_filename, "wb")
         for data, _ in tqdm(loader):
             data = data.to(device)
+            start = time.time()
             output = model(data)
             np.savetxt(f, output.cpu().numpy())
+            stop = time.time()
+            times.append(stop-start)
         f.close()
+    
+    print("Median inference time: ", np.median(np.array(times)))
 
 
 def retrieve(database_filename, query_idx, k, metric_function, sorted=False):
