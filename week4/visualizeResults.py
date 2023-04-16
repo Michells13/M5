@@ -10,6 +10,7 @@ from torchvision.models import resnet18, ResNet18_Weights
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+from sklearn.decomposition import PCA
 import torchvision.datasets as datasets
 
 def obtainResnet18featureExtractor():
@@ -58,6 +59,7 @@ def visualizeDataTSNE(embeddings, labels, labelsNames):
     ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     ax.set_xlabel(None)
     ax.set_ylabel(None)
+    ax.set_title("t-SNE visualization")
     plt.show()
     
 def visualizeDataUMAP(embeddings, labels, labelsNames):
@@ -76,6 +78,45 @@ def visualizeDataUMAP(embeddings, labels, labelsNames):
     ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
     ax.set_xlabel(None)
     ax.set_ylabel(None)
+    ax.set_title("UMAP visualization")
+    plt.show()
+
+def visualizeDataUMAP(embeddings, labels, labelsNames):
+    # Fit UMAP to processed data
+    manifold = umap.UMAP().fit(embeddings, labels)
+    transEmbeddings = manifold.transform(embeddings)
+    
+    # Create dataframe
+    tsne_result_df = pd.DataFrame({'tsne_1': transEmbeddings[:,0], 'tsne_2': transEmbeddings[:,1], 'Class': labelsNames})
+    fig, ax = plt.subplots(1)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='Class', data=tsne_result_df, palette="deep", ax=ax,s=20)
+    lim = (transEmbeddings.min()-5, transEmbeddings.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    ax.set_xlabel(None)
+    ax.set_ylabel(None)
+    ax.set_title("UMAP visualization")
+    plt.show()
+
+def visualizeDataPCA(embeddings, labels, labelsNames):
+    # Fit UMAP to processed data
+    pca = PCA(n_components = 2)
+    transEmbeddings = pca.fit_transform(embeddings, labels)
+    
+    # Create dataframe
+    tsne_result_df = pd.DataFrame({'tsne_1': transEmbeddings[:,0], 'tsne_2': transEmbeddings[:,1], 'Class': labelsNames})
+    fig, ax = plt.subplots(1)
+    sns.scatterplot(x='tsne_1', y='tsne_2', hue='Class', data=tsne_result_df, palette="deep", ax=ax,s=20)
+    lim = (transEmbeddings.min()-5, transEmbeddings.max()+5)
+    ax.set_xlim(lim)
+    ax.set_ylim(lim)
+    ax.set_aspect('equal')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+    ax.set_xlabel(None)
+    ax.set_ylabel(None)
+    ax.set_title("PCA visualization")
     plt.show()
 
 if __name__ == "__main__":
@@ -123,4 +164,7 @@ if __name__ == "__main__":
     
     # Visualize UMAP
     visualizeDataUMAP(embeddings, labels, labelsStr)
+    
+    # Visualize PCA
+    visualizeDataPCA(embeddings, labels, labelsStr)
     
