@@ -21,7 +21,7 @@ We utilized pre-trained models from ResNet to observe the feature vectors that t
 * --
 
 #### Task b:
-* `siamese_example.py``: A script used to 
+* ``siamese_example.py``: A script used to 
 
 #### Task c:
 * ``triplets.py``: A script used to train and evaluate a resnet18 model in a triplet architecture plus hyperparameters search with optuna.  
