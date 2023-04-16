@@ -21,14 +21,14 @@ We utilized pre-trained models from ResNet to observe the feature vectors that t
 * --
 
 #### Task b:
-* ``siamese_example.py``: A script used to 
+* ``siamese_script.py``: This script was used to train the model in a siamese way.
+* ``measureAndGetExamples.py``: This script was used to do the qualitative and quantitative analysis of the trained model.
 
 #### Task c:
 * ``triplets.py``: A script used to train and evaluate a resnet18 model in a triplet architecture plus hyperparameters search with optuna.  
 
 #### Task d:
-* ``vizualizeResults.py``: A script to vizualize models with TSNE and UMAP
-
+* ``vizualizeResults.py``: A script to visualize feature spaces learnt by models with TSNE, UMAP and PCA
 #### Task e:
 * ``trainCOCOtriplet.py``: a script used to train the networks (method 1 and 2 explained in the slides) using the triplet margin loss.
 * ``cocoTripletGetFeatures.py``: a script used to extract and store the feature vectors of the images using the fine-tuned models.

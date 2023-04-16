@@ -96,12 +96,13 @@ if __name__ == "__main__":
     lrs = [1e-3, 1e-4, 1e-5]
     batch_sizes =   [16, 32, 64, 128]
     minerOpts = ["hard", "semihard", "no"]
-    num_epochs = 1#100
-    batch_size = 32
+    num_epochs = 100#100
+    batch_size = 128
     lr = 1e-5
     minerOpt = "no"
     
-    for lr in lrs:
+    for minerOpt in minerOpts:
+
         # Init model
         model1 = models.resnet18(weights = ResNet18_Weights.IMAGENET1K_V1)
         feature_extractor = torch.nn.Sequential(*(list(model1.children())[:-1]))

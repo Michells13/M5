@@ -126,7 +126,7 @@ if __name__ == "__main__":
     device = "cuda"
     batch_size = 64
     trained = True
-    weightsPath = "best_model_loss.pth"
+    weightsPath = "resnet_siamese_lr_1e-05_batchSize_128_miner_no.pth"
     
     # Get model
     resnet18 = obtainResnet18featureExtractor()
