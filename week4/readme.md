@@ -18,7 +18,12 @@ We utilized pre-trained models from ResNet to observe the feature vectors that t
 
 ### Scripts:
 #### Task a:
-* --
+* ``retrieve_utils.py``: Functions for database generation, and retrieval API.
+* ``make_database_example.py``: Example of database generation.
+* ``retrieve_example.py``: Example of retrieval.
+* ``compute_retrieval_metrics.py``: Estimate retrieval power of given database-representation.
+* ``train_resnet.py``: Fine-tune ResNet18 on MIT_split dataset.
+
 
 #### Task b:
 * ``siamese_script.py``: This script was used to train the model in a siamese way.
