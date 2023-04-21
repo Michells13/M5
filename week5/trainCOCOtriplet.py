@@ -33,18 +33,23 @@ def trainText2Img(imgFeatureExt,textFeatureExt,imgModel,textModel, train_loader,
             optimizer.zero_grad()
             
             # Store batches in train device
+            data = data[0]
+            captions, pos_img, neg_img = data
+            pos_img, neg_img = pos_img.to(device), neg_img.to(device)
+            captions = [caption.lower() for caption in captions]
             
-            caption, pos_img, neg_img = data
-            caption, pos_img, neg_img = caption.to(device), pos_img.to(device), neg_img.to(device)
-            
-            
-            caption = textFeatureExt.get_sentence_vector(caption)   
+            # Get text and image features
+            captionFeatures = [np.expand_dims(textFeatureExt.get_sentence_vector(caption), 0) for caption in captions]  
+            captionFeatures = np.vstack(captionFeatures)
+            captionFeatures = torch.from_numpy(captionFeatures) 
+            captionFeatures = captionFeatures.to(device)
             pos_img = imgFeatureExt(pos_img)
             neg_img = imgFeatureExt(neg_img)
+            
             # Forward pass
-            anchors = textModel(data[0])
-            positives = imgModel(data[1])
-            negatives = imgModel(data[2])
+            anchors = textModel(captionFeatures)
+            positives = imgModel(pos_img)
+            negatives = imgModel(neg_img)
             
             # Triplet loss
             loss = loss_func(anchors, positives, negatives)
@@ -125,7 +130,9 @@ def train(model, train_loader, optimizer, num_epochs, loss_func, device = "cuda"
 
 if __name__ == "__main__":
     
-    
+    run = wandb.init(project='M5_WEEK5', job_type='train')
+    wandb.run.name = "COCO_img2txt"
+
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -141,8 +148,8 @@ if __name__ == "__main__":
         
     # Paths and some train params
     transformsPretrained = MaskRCNN_ResNet50_FPN_V2_Weights.COCO_V1.transforms()
-    jsonPathCap= "/media/michell/DSet/annotations_trainval2014/annotations/captions_train2014.json"
-    trainImages= "/media/michell/DSet/train2014"
+    jsonPathCap= "../../WEEK4/COCO/captions_train2014.json"
+    trainImages= "../../WEEK4/COCO/train2014/"
     batch_size = 32
     epochs = 5
     size = (240,320)
@@ -154,7 +161,7 @@ if __name__ == "__main__":
     imgFeatureExt = imgFeatureExt.to(device)
     
     #Load text extractor
-    textFeatureExt = fasttext.load_model("/media/michell/DSet/fasttext_wiki.en.bin")
+    textFeatureExt = fasttext.load_model("ag_news.bin")
     
     
     
@@ -164,6 +171,12 @@ if __name__ == "__main__":
     for param in text_model.parameters():
         param.requires_grad = True
     
+    # Freeze feature extractors
+    for param in imgFeatureExt.parameters():
+        param.requires_grad = False
+    # for param in textFeatureExt.parameters():
+    #     param.requires_grad = False
+    
     # Transform
     transformsAp = torch.nn.Sequential(
         transformsPretrained,
@@ -171,7 +184,7 @@ if __name__ == "__main__":
     )
 
     # Init dataset
-    train_dataset = TripletCOCO_Text2Img(trainImages, trainImages, jsonPathCap,None)
+    train_dataset = TripletCOCO_Text2Img(trainImages, os.listdir(trainImages), jsonPathCap, transformsAp)
     #train_dataset = TripletCOCOproba(trainImagesPath, trainImages, jsonPath, transforms)
 
     train_loader = torch.utils.data.DataLoader(train_dataset, 

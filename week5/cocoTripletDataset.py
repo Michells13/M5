@@ -115,10 +115,11 @@ class TripletCOCO_Text2Img(Dataset):
         i1 = 0
         while i1 < len(self.trainImages):
             image1 = self.trainImages[i1]
-            print(int(image1[:-4].split("_")[2]))
+            
             image1Num = int(image1[:-4].split("_")[2])
             
             if not(image1Num in self.objs.keys()):
+                print(int(image1[:-4].split("_")[2]))
                 del self.trainImages[i1]
             else:
                 i1 += 1

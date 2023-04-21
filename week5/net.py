@@ -8,7 +8,7 @@ from torch.nn import Module, Linear, ReLU, init, Sequential, Dropout, LayerNorm
 
 
 class ImgModel(Module):
-    def __init__(self, dim=4096,embedding_size = 1000):
+    def __init__(self, dim=1024,embedding_size = 1000):
         super(ImgModel, self).__init__()
 
         self.linear1 = Linear(dim, embedding_size)
@@ -118,7 +118,7 @@ class FasterRCNN_Triplet_COCO(nn.Module):
     
     def __init__(self, weighted = False):
         """
-        Loads the pretrained Resnet50 in COCO (from pretrained FasterRCNN)
+        Loads the pretrained FasterRCNN as feature extractor
 
         Returns
         -------
