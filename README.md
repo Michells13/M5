@@ -5,7 +5,7 @@
 #### Kyryl Dubovetskyi    email: krupartea@gmail.com
 #### Michell Vargas Signoret	email: michellvsigno21@gmail.com
 
-#### [Article (final version of Week 5](https://es.overleaf.com/read/kthmsbytywtz)
+#### Final version of Week 5 report: [Article](https://es.overleaf.com/read/kthmsbytywtz)
 #### [Week 1 slides](https://docs.google.com/presentation/d/1ZaabsSSSNnI0wGd8IBkbaUryjoNbt9vyXrmVjyZUQnk/edit?usp=sharing)
 #### [Week 2 slides](https://docs.google.com/presentation/d/1uvurvNwzEVRzMGmrRjYBq9pfrsu4xKckqO1a9aWnKb4/edit?usp=sharing)
 #### [Week 3 slides](https://docs.google.com/presentation/d/1YZMrKgpFDJl6wxx11vqdwnG68etr-Td4McNIUImzSyU/edit?usp=sharing)
