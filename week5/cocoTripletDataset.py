@@ -15,9 +15,11 @@ class TripletCOCO_Img2Text(Dataset):
     Train: For each sample (anchor) randomly chooses a positive and negative caption
     """
 
-    def __init__(self, trainImagesFolder, trainImages, captionLabels, transform):
+    def __init__(self, trainImagesFolder, trainImages, trainImageLabels, captionLabels, transform):
         # Opening JSON file
-
+        f = open(trainImageLabels)
+        labelJson = json.load(f)
+        f.close()
         fcap = open(captionLabels)
         cocoCapJson= json.load(fcap)
         fcap.close()
@@ -51,7 +53,8 @@ class TripletCOCO_Img2Text(Dataset):
     def __getitem__(self, index):
         # Get anchor image
         img1name = self.trainImages[index]
-        img1 = cv2.imread(self.trainImagesFolder + img1name)
+        img1name = os.path.join(self.trainImagesFolder, img1name)
+        img1 = cv2.imread(img1name)
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
 
         # Get random positive caption
@@ -78,22 +81,21 @@ class TripletCOCO_Img2Text(Dataset):
         if self.transform is not None:
             img1 = self.transform(img1)
 
-        return (img1, positiveCaption, negativeCaption), []
+        return img1, positiveCaption, negativeCaption
 
     def __len__(self):
         return len(self.trainImages)
-
-
-
 
 class TripletCOCO_Text2Img(Dataset):
     """
     Train: For each sample (anchor) randomly chooses a positive and negative caption
     """
 
-    def __init__(self, trainImagesFolder, trainImages, captionLabels, transform):
+    def __init__(self, trainImagesFolder, trainImages, trainImageLabels, captionLabels, transform):
         # Opening JSON file
-
+        f = open(trainImageLabels)
+        labelJson = json.load(f)
+        f.close()
         fcap = open(captionLabels)
         cocoCapJson= json.load(fcap)
         fcap.close()
@@ -111,24 +113,24 @@ class TripletCOCO_Text2Img(Dataset):
             self.objs = self.annotations_by_image
   
         
+        
         # Remove images that don't have captions
         i1 = 0
         while i1 < len(self.trainImages):
             image1 = self.trainImages[i1]
-            
             image1Num = int(image1[:-4].split("_")[2])
             
-            if not(image1Num in self.objs.keys()):
-                print(int(image1[:-4].split("_")[2]))
+            if not(image1Num in self.annotations_by_image.keys()):
                 del self.trainImages[i1]
             else:
                 i1 += 1
 
+    
     def __getitem__(self, index):
-        
         # Get anchor image
         img1name = self.trainImages[index]
-        img1 = cv2.imread(self.trainImagesFolder + img1name)
+        img1name = os.path.join(self.trainImagesFolder, img1name)
+        img1 = cv2.imread(img1name)
         img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
 
         # Get random positive caption
@@ -137,25 +139,96 @@ class TripletCOCO_Text2Img(Dataset):
         random_index = random.randrange(0, len(image_captionsP))
         positiveCaption = image_captionsP[random_index]
         
-        # Get random negative image
-
+        
+        # Get random negative caption
+        # Get random image
         img3name = np.random.choice(self.trainImages)
-        img3value = int(img3name[:-4].split("_")[2])
+        img3name = os.path.join(self.trainImagesFolder, img3name)
+        img3 = cv2.imread(img3name)
+        img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2RGB)
             
-        negativeImg = cv2.imread(self.trainImagesFolder + img3name)
-        negativeImg = cv2.cvtColor(negativeImg, cv2.COLOR_BGR2RGB)
+
+    
         
         # Transform
         img1 = Image.fromarray(img1)
-        negativeImg = Image.fromarray(negativeImg)
+        img3 = Image.fromarray(img3)
+
         if self.transform is not None:
             img1 = self.transform(img1)
-            negativeImg = self.transform(negativeImg)
-        return (positiveCaption, img1, negativeImg), []
+            img3 = self.transform(img3)
+
+        return img1, positiveCaption, img3
 
     def __len__(self):
-        return len(self.trainImages)        
+        return len(self.trainImages)
+
+
+class TripletCOCOdatabase_Img2Text(Dataset):
+    """
+    Train: For each sample (anchor) randomly chooses a positive and negative caption
+    """
+
+    def __init__(self, databaseImagesFolder, databaseImages, 
+                 databaseImageCaptions, transform, max_images):
+        # Opening captions JSON file
+        fcap = open(databaseImageCaptions)
+        cocoCapJson= json.load(fcap)
+        fcap.close()
         
+        
+        self.transform = transform
+        self.trainImagesFolder = databaseImagesFolder
+        self.trainImages = databaseImages
+        
+        self.annotations_by_image = {}
+        
+        self.trainImages = self.trainImages[:max_images]
+        
+        self.imageNames = [int(name[:-4].split("_")[2]) for name in self.trainImages]
+        for ann in cocoCapJson['annotations']:
+            image_id = ann['image_id']
+            if image_id in self.imageNames:
+                if image_id not in self.annotations_by_image:
+                    self.annotations_by_image[image_id] = []
+                self.annotations_by_image[image_id].append(ann)
+                self.objs = self.annotations_by_image
+  
+        
+        
+        # Remove images that don't have captions
+        i1 = 0
+        while i1 < len(self.trainImages):
+            image1 = self.trainImages[i1]
+            image1Num = int(image1[:-4].split("_")[2])
+            
+            if not(image1Num in self.annotations_by_image.keys()):
+                del self.trainImages[i1]
+            else:
+                i1 += 1
+
+    
+    def __getitem__(self, index):
+        # Get anchor image
+        img1name = self.trainImages[index]
+        img1 = cv2.imread(self.trainImagesFolder + img1name)
+        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+
+        # Get random positive caption
+        cap_pos = int(img1name[:-4].split("_")[2])
+        image_captionsP = [ann['caption'] for ann in self.objs[cap_pos]]
+        
+        # Transform
+        img1 = Image.fromarray(img1)
+
+        if self.transform is not None:
+            img1 = self.transform(img1)
+
+        return (img1, image_captionsP[:5]), []
+
+    def __len__(self):
+        return len(self.trainImages)
+
 class TripletCOCO(Dataset):
     """
     Train: For each sample (anchor) randomly chooses a positive and negative samples
@@ -326,9 +399,11 @@ class TripletCOCOdatabase(Dataset):
 
 if __name__ == "__main__":
     
-    jsonPath = "/media/michell/DSet/annotations_trainval2014/annotations/person_keypoints_train2014.json"
-    jsonPathCap= "/media/michell/DSet/annotations_trainval2014/annotations/captions_train2014.json"
-    trainImagesPath = "/media/michell/DSet/train2014"
+    jsonPath = r"D:\coco\annotations_trainval2014\annotations\person_keypoints_val2014.json"
+    jsonPathCap= r"D:\coco\annotations_trainval2014\annotations\captions_val2014.json"
+    trainImagesPath = r"D:\coco\val2014\val2014"
     trainImages = os.listdir(trainImagesPath)
 
-    dataset = TripletCOCO_Text2Img(trainImagesPath, trainImages, jsonPathCap,None)
+    dataset = TripletCOCO_Img2Text(trainImagesPath, trainImages, jsonPath, jsonPathCap,None)
+    dataset[0]
+    pass
