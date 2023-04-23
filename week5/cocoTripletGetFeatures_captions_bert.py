@@ -105,8 +105,8 @@ if __name__ == "__main__":
     #model = model.backbone
     modelImages = modelImages.to(device)
     # Load trained weights
-    weightsText = "img2text_best_text_bert.pth"
-    weightsImages = "img2text_best_img_bert.pth"
+    weightsText = "best_text_taskb_bert.pth"
+    weightsImages = "best_img_taskb_bert.pth"
     modelText.load_state_dict(torch.load(weightsText, map_location=device))
     modelImages.load_state_dict(torch.load(weightsImages, map_location=device))
     
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     database_loader = torch.utils.data.DataLoader(database_dataset, 
                                                batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
     
-    cache_filename = "features_img2textbert_" + str(img_num) + "_.txt"
+    cache_filename = "features_text2imgbert_" + str(img_num) + "_.txt"
 
     cache_outputs_coco_captions(database_loader, text_pre_model_tok, text_pre_model_model, modelText, img_pre_model, modelImages, cache_filename, device)
     

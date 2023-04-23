@@ -122,7 +122,7 @@ if __name__ == "__main__":
     database_loader = torch.utils.data.DataLoader(database_dataset, 
                                                batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
     
-    cache_filename = "features_" + str(img_num) + "_.txt"
+    cache_filename = "features_text2imgfast" + str(img_num) + "_.txt"
 
     cache_outputs_coco_captions(database_loader, text_pre_model, modelText, img_pre_model, modelImages, cache_filename, device)
     

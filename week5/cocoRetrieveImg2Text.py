@@ -35,13 +35,12 @@ def computePositives(neighbors):
             
             dbIndex = neighbors[i_query, i_db]
             
-            if i_query >= dbIndex*5 and i_query < dbIndex*5 + 5:
+            if dbIndex >= i_query*5 and dbIndex < i_query*5 + 5:
                 resultQuery.append(1)
             else:
                 resultQuery.append(0)
         
         resultsQueries.append(resultQuery)
-        
     
     return np.array(resultsQueries)
 if __name__ == "__main__":
@@ -55,15 +54,15 @@ if __name__ == "__main__":
     
     
     # Init database dataset
-    img_num = 4000
     databaseImagesPath = "../WEEK4/COCO/val2014/"
     databaseImages = os.listdir(databaseImagesPath)
+    max_images = 4000
     
     database_dataset = TripletCOCOdatabase_Img2Text(databaseImagesPath, databaseImages,
-                                           jsonPathCap, None, img_num)
+                                           jsonPathCap, None, max_images)
     
-    databaseImagesFeaturesPath = "features_text2imgfast4000__images.txt"
-    databaseCaptionsFeaturesPath = "features_text2imgfast4000__captions.txt"
+    databaseImagesFeaturesPath = "features_img2textfast4000__images.txt"
+    databaseCaptionsFeaturesPath = "features_img2textfast4000__captions.txt"
     databaseImagesFeatures = np.loadtxt(databaseImagesFeaturesPath)
     databaseImagesFeatures = databaseImagesFeatures.astype(np.float32)
     databaseCaptionFeatures = np.loadtxt(databaseCaptionsFeaturesPath)
@@ -78,9 +77,9 @@ if __name__ == "__main__":
     for i in range(repeatN):
         start = time.time()
         if useFaiss:
-            retrieval = FAISSretrieval(databaseImagesFeatures, databaseImagesFeatures.shape[1])
+            retrieval = FAISSretrieval(databaseCaptionFeatures, databaseCaptionFeatures.shape[1])
         else:
-            retrieval = KNNretrieval(databaseImagesFeatures, metric, databaseImagesFeatures.shape[0])
+            retrieval = KNNretrieval(databaseCaptionFeatures, metric, databaseCaptionFeatures.shape[0])
         stop = time.time()
         times.append(stop-start)
     print("Time fit(s): ", np.median(np.array(times)))
@@ -89,7 +88,7 @@ if __name__ == "__main__":
     times = []
     for i in range(repeatN):
         start = time.time()
-        (dis, neighbors) = retrieval.getMostSimilar(databaseCaptionFeatures, databaseImagesFeatures.shape[0])
+        (dis, neighbors) = retrieval.getMostSimilar(databaseImagesFeatures, databaseCaptionFeatures.shape[0])
         stop = time.time()
         times.append(stop-start)
     print("Time retrieval(s): ", np.median(np.array(times)))
@@ -114,37 +113,41 @@ if __name__ == "__main__":
     inStr = input("Press Enter to continue, other key to exit...")
     while inStr == "":
         # Show results
-        query = np.random.choice(list(range(databaseCaptionFeatures.shape[0]))) #695
+        query = np.random.choice(list(range(databaseImagesFeatures.shape[0]))) #695
         print("Id: ", query)
-        num = query % 5
-        queryIndex = query // 5
-
-        # Get caption
-        data, _ = database_dataset[queryIndex]
-        img, captions = data
-        print("Query caption: ", captions[num])
-        
-        print("GT img:")
-        goodImage = np.argmax(resultList[query, :])
-        goodImage = neighbors[query,goodImage]
-        data, _ = database_dataset[goodImage]
+        print("Query image:")
+        # Get image
+        data, _ = database_dataset[query]
         img, _ = data
+        img = np.array(img)
         plt.imshow(img)
         plt.show()
-        # Get 5 most close images
+        
+        
+        print("GT caption:")
+        goodCaption = np.argmax(resultList[query, :])
+        goodCaption = neighbors[query,goodCaption]
+        goodCaptionInd = goodCaption % 5
+        goodCaptionImgInd = goodCaption // 5
+        data, _ = database_dataset[goodCaptionImgInd]
+        _, captions = data
+        print(captions[goodCaptionInd])
+        
+        # Get 5 most close captions
         for i in range(5):
-            print(i, ". closest image:")
+            print(i, ". closest caption:")
             
             neighbor = neighbors[query, i]
+            num = neighbor % 5
+            neighbor = neighbor // 5
             
             # Get caption
             data, _ = database_dataset[neighbor]
-            img, captions = data
-            img = np.array(img)
-            plt.imshow(img)
-            plt.show()
+            _, captions = data
+
+            print("Caption: ", captions[num])
             
-            print("Correct image: ", resultList[query, i] == 1)
+            print("Correct caption: ", resultList[query, i] == 1)
         
         inStr = input("Press Enter to continue, other key to exit...")
     

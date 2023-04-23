@@ -3,46 +3,7 @@ from torchvision import models
 import copy
 import torchvision
 import torch
-from torch.nn import Module, Linear, ReLU, init, Sequential, Dropout, LayerNorm
 
-
-
-class ImgModel(Module):
-    def __init__(self, dim=1024,embedding_size = 1000):
-        super(ImgModel, self).__init__()
-
-        self.linear1 = Linear(dim, embedding_size)
-        self.activation = ReLU()
-        self.init_weights()
-
-    def init_weights(self):
-        # Linear
-        init.kaiming_uniform_(self.linear1.weight, mode='fan_in', nonlinearity='relu')
-    
-    def forward(self, x):
-        x = self.activation(x)
-        x = self.linear1(x)
-        x = x / x.pow(2).sum(1, keepdim=True).sqrt()
-        return x
-
-
-class TextModel(Module):
-    def __init__(self, embedding_size = 1000):
-        super(TextModel, self).__init__()
-        self.linear1 = Linear(300, embedding_size)
-        self.activation = ReLU()
-
-        self.init_weights()
-
-    def init_weights(self):
-        # Linear
-        init.kaiming_uniform_(self.linear1.weight, mode='fan_in', nonlinearity='relu')
-    
-    def forward(self, x):
-        x = self.activation(x)
-        x = self.linear1(x)
-        x = x / x.pow(2).sum(1, keepdim=True).sqrt()
-        return x
 
 class ResNet_Triplet_COCO(nn.Module):
     
@@ -118,7 +79,7 @@ class FasterRCNN_Triplet_COCO(nn.Module):
     
     def __init__(self, weighted = False):
         """
-        Loads the pretrained FasterRCNN as feature extractor
+        Loads the pretrained Resnet50 in COCO (from pretrained FasterRCNN)
 
         Returns
         -------
