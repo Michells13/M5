@@ -41,8 +41,10 @@ def cache_outputs_coco_captions(loader, text_pre_model_tok, text_pre_model_model
         for data, _ in tqdm(loader):
             data, captions = data
             start = time.time()
-            captions = [re.sub(r'[^a-zA-Z ]', '', sentence.lower()) for sentence in captions]
+            captions = [re.sub(r'[^a-zA-Z ]', '', sentence[0].lower()) for sentence in captions]
+            captions = text_pre_model_tok(captions, return_tensors="pt", padding = True)
             captions = text_pre_model_model(input_ids = captions["input_ids"].to(device), attention_mask = captions["attention_mask"].to(device))
+            captions = captions["last_hidden_state"][:,0,:]
             captionFeatures = modelText(captions)
             stop = time.time()
             timesText.append(stop-start)
@@ -103,8 +105,8 @@ if __name__ == "__main__":
     #model = model.backbone
     modelImages = modelImages.to(device)
     # Load trained weights
-    weightsText = "best_text_taskb.pth"
-    weightsImages = "best_img_taskb.pth"
+    weightsText = "img2text_best_text_bert.pth"
+    weightsImages = "img2text_best_img_bert.pth"
     modelText.load_state_dict(torch.load(weightsText, map_location=device))
     modelImages.load_state_dict(torch.load(weightsImages, map_location=device))
     
@@ -124,7 +126,7 @@ if __name__ == "__main__":
     database_loader = torch.utils.data.DataLoader(database_dataset, 
                                                batch_size=batch_size, shuffle=False)#, collate_fn=collate_fn)
     
-    cache_filename = "features_" + str(img_num) + "_.txt"
+    cache_filename = "features_img2textbert_" + str(img_num) + "_.txt"
 
     cache_outputs_coco_captions(database_loader, text_pre_model_tok, text_pre_model_model, modelText, img_pre_model, modelImages, cache_filename, device)
     
