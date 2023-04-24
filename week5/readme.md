@@ -22,7 +22,11 @@ We used Faster R-CNN as the image feature extractor, as explained in the week 4 
 
 * `cocoTripletDataset.py`: script where the custom dataset classes are defined. In the `TripletCOCO_Img2Text` class, the element is a triplet with an anchor image, a positive caption, and a negative caption. In the `TripletCOCO_Text2Img` class, the element is a triplet composed of an anchor caption and positive and negative images.
 #### Task a:
-* --
+* `img2text.py`: a script to train img2text networks with fastText as a text model.
+* `make_database_img.py`: a scirpt that caches image representation in a common feature space.
+* `make_database_text.py`: a scirpt that caches text representation in a common feature space.
+* `main_retrieve.py`: a script to qualitatively evaluate img2text retriaval network(s): show query image and k closest captions.
+* `cocoRetrieveImg2Text_v2.py`: a script to calculate metrics for learned common img/text representations.
 
 #### Task b:
 *   `text2img.py`: a script used to train the networks (only the fully connected ones) using the triplet margin loss in the COCO official train set, with FastText model as the text feature extractor for text-to-image retrieval.
